@@ -634,13 +634,16 @@ function recompute() {
   S.p = Math.min(PMAX, Math.round(S.pace / VF(S.alt)));
   BR = breath(S.p);
   // Do OBLA wysiłek kończy się, gdy pracujące włókna wyczerpią glikogen [coyle1986, gollnick1974]: dobieramy pulę glikogenu
-  // w rekrutowanych włóknach tak, by ściana (bez jedzenia) wypadła w czasie krzywej TTE; powyżej OBLA pula jak przy OBLA.
+  // w rekrutowanych włóknach tak, by ściana (bez jedzenia) wypadła w czasie krzywej TTE; powyżej OBLA pula, przy której włókna opróżniają się w czasie krzywej przy OBLA.
   const poolFor = st => {
     const p0 = S.p, g0 = S.gph, s0 = S.status; S.status = st;
-    const pr = Math.min(S.p, OBLA()), target = tteCP(pr, false); S.status = s0;
+    const above = S.p > OBLA(), pr = Math.min(S.p, OBLA()), target = tteCP(pr, false); S.status = s0;
     if (!isFinite(target)) return 1;
     S.p = pr; S.gph = 0;
-    const wallAt = sc => { const w = simulate(st, sc, 2000).wall; return w === null ? Infinity : w; };
+    // powyżej OBLA: pula, przy której pracujące włókna opróżniają się w czasie krzywej przy OBLA; dopasowanie do ściany zawodzi,
+    // gdy przy OBLA wątroba sama pokrywa mniejsze bezwzględne zużycie (wysokość, mały/mniej wydolny zawodnik): pula spada do minimum
+    // i wyżej wyczerpuje się w kilkanaście minut, a TTE spada skokowo tuż nad OBLA
+    const wallAt = sc => { const r = simulate(st, sc, 2000); if (above) { const i = r.tr.findIndex(x => x.gm < 0.1 * r.w0); return i < 0 ? Infinity : i; } return r.wall === null ? Infinity : r.wall; };
     let lo = 0.1, hi = 1;
     if (wallAt(hi) <= target) lo = hi;
     else for (let i = 0; i < 12; i++) { const m = (lo + hi) / 2; if (wallAt(m) < target) lo = m; else hi = m; }
@@ -649,9 +652,12 @@ function recompute() {
   const pool = poolFor(S.status);
   SIM = simulate(S.status, pool);
   { // ściana: z symulacji bez węglowodanów (zgodna z proporcjami Bergström 1967), karmienie wydłuża ją ×(1 + 0,33·wchłonięte/60), do 90 g/h [coyle1986: ≈3 → 4 h]
-    const g = S.gph; S.gph = 0; const w0 = simulate(S.status, pool).wall; S.gph = g;
+    const g = S.gph; S.gph = 0; const ws = simulate(S.status, pool).wall; S.gph = g;
+    // gdy nawet najmniejsza pula daje ścianę później niż krzywa (wątroba sama pokrywa mniejsze bezwzględne zużycie CHO, np. na wysokości),
+    // ściana na czczo = krzywa TTE: inaczej TTE tuż pod OBLA rośnie ponad krzywą i spada skokowo na OBLA
+    const w0 = Math.min(ws === null ? Infinity : ws, tteCP(Math.min(S.p, OBLA()), false));
     const f = feedGain(SIM.tr[0].A.absorbed);
-    SIM.wall = w0 === null ? SIM.wall : (w0 * f <= TMAX ? Math.round(w0 * f) : null);
+    SIM.wall = isFinite(w0) && w0 * f <= TMAX ? Math.round(w0 * f) : (ws === null ? SIM.wall : null);
   }
   GHOST = S.status !== 'normal' ? simulate('normal', poolFor('normal')) : null;
   cur = SIM.tr[Math.round(S.t)];
@@ -1436,7 +1442,7 @@ const CHARTS = {
     line(SIM.tr.map(r => [r.t / TMAX, r.gl / top]), a, { c: C.ink2, w: 3, d: '7 3' });
     line(SIM.tr.map(r => [r.t / TMAX, r.bg * 0.2]), a, { c: C.blood, w: 1.5 });
     if (SIM.wall !== null) { const x = a.X(SIM.wall / TMAX); el('line', { x1: x, y1: a.Y1, x2: x, y2: a.Y0, stroke: C.blood, 'stroke-width': 2 }, ch); tx(ch, Math.abs(SIM.wall - TTE()) < 1 ? 'the wall = TTE' : 'the wall', x > 240 ? x - 4 : x + 4, a.Y1 + 24, { size: 11, w: 600, fill: C.blood, anchor: x > 240 ? 'end' : 'start' }); }
-    if (TTE() <= TMAX && (SIM.wall === null || Math.abs(SIM.wall - TTE()) >= 1)) { const x = a.X(tteCP(S.p) / TMAX); el('line', { x1: x, y1: a.Y1, x2: x, y2: a.Y0, stroke: C.blood, 'stroke-width': 2 }, ch); tx(ch, 'TTE', x + 4, a.Y1 + 24, { size: 11, w: 600, fill: C.blood }); }
+    if (TTE() <= TMAX && (SIM.wall === null || Math.abs(SIM.wall - TTE()) >= 1)) { const x = a.X(tteCP(S.p) / TMAX); el('line', { x1: x, y1: a.Y1, x2: x, y2: a.Y0, stroke: C.blood, 'stroke-width': 2 }, ch); tx(ch, 'TTE', x + 4, a.Y1 + (SIM.wall !== null && a.X(SIM.wall / TMAX) - x < 80 ? 38 : 24), { size: 11, w: 600, fill: C.blood }); }   // pod etykietą ściany, gdy linie blisko
     vmark(a, S.t / TMAX);
     return ['Glycogen over time', LEG([['muscle (total)', C.ink], ['liver', C.ink2, 1], ['blood glucose (relative)', C.blood]].concat(GHOST ? [['normal start', C.grey, 1]] : []))];
   },
@@ -1734,7 +1740,7 @@ $('srcOpen').addEventListener('click', openSrc);
 document.querySelector('.mobnav [data-src]').addEventListener('click', openSrc);
 $('srcClose').addEventListener('click', () => srcDlg.close());
 srcDlg.addEventListener('click', ev => { if (ev.target === srcDlg) srcDlg.close(); });
-$('srcList').innerHTML = Object.values(SRC).map(s => `<li>${s}</li>`).join('') + '<li>Illustrative (no source yet): the share of muscle glycogen held in the working legs (60%), “low” starting glycogen, liver glycogen after loading, the share of glycogen vs blood glucose, gluconeogenesis rate, the gut-absorption fall above ~75% VO₂max, blood-lactate curve shape, LT1 position; ventilation curve and placing VT1/RCP at LT1/OBLA; CP placed just above OBLA; OBLA treated as MLSS; TTE: a fatigue curve through the sourced points (LT1, MLSS, CP, VO₂max; interpolated, TTE at LT1 scaled by VO₂max; starting glycogen scales it by Bergström’s ratios). Up to OBLA, TTE is the glycogen wall: the glycogen pool in the working fibres is sized so that, without eating, the wall falls on the curve; eating lengthens it by 0.33× per 60 g/h absorbed (Coyle 1986), extended in a straight line up to 90 g/h (×1.5; that glucose with fructose beats glucose alone is from Currell 2008, the straight line is illustrative). Above OBLA, TTE is the shorter of the curve and the wall; VO₂max loss above 2800 m (line extended); SpO₂ (model: West PB, alveolar gas equation, O₂–Hb curve; drive to breathe, acclimatisation and drug effect are directions only); kidney bicarbonate values; PCr level vs intensity; the PCr refilling curve is a two-phase fit to Bogdanis’s measurements; anaerobic carbohydrate use above VO₂max; FTP, when not entered, placed exactly at OBLA (a single rider can differ by tens of watts); an entered FTP changes only the % FTP readouts, not the thresholds; watts from the Latin 1993 equation, which was measured up to 900 kgm/min (≈147 W) and is extended above that, and is used as-is for women; above 100% VO₂max, watts are the oxygen demand extended past VO₂max; % HRmax is a straight line through Swain’s sea-level averages, not adjusted for altitude, heat or drift during long efforts; at altitude the threshold is kept at the same % of the lower VO₂max; above OBLA any carbohydrate intake acts like the 2.8% power gain from a mouth rinse (Carter 2004), read off the TTE curve, in full for efforts of 45 min or more and fading to none at 20 min (the 20 and 45 min limits are illustrative); VO₂max recovery with days follows Schuler’s steps at 2340 m, is interpolated between 2340 and 4100 m (about 10% of the loss from 4100 m up, as in Calbet) and held flat after day 21.</li>';
+$('srcList').innerHTML = Object.values(SRC).map(s => `<li>${s}</li>`).join('') + '<li>Illustrative (no source yet): the share of muscle glycogen held in the working legs (60%), “low” starting glycogen, liver glycogen after loading, the share of glycogen vs blood glucose, gluconeogenesis rate, the gut-absorption fall above ~75% VO₂max, blood-lactate curve shape, LT1 position; ventilation curve and placing VT1/RCP at LT1/OBLA; CP placed just above OBLA; OBLA treated as MLSS; TTE: a fatigue curve through the sourced points (LT1, MLSS, CP, VO₂max; interpolated, TTE at LT1 scaled by VO₂max; starting glycogen scales it by Bergström’s ratios). Up to OBLA, TTE is the glycogen wall: the glycogen pool in the working fibres is sized so that, without eating, the wall falls on the curve (where the liver alone would carry the effort past the curve, as with the lower carbohydrate use at altitude, the wall is set on the curve); above OBLA the pool is sized so the working fibres run empty at the OBLA time; eating lengthens it by 0.33× per 60 g/h absorbed (Coyle 1986), extended in a straight line up to 90 g/h (×1.5; that glucose with fructose beats glucose alone is from Currell 2008, the straight line is illustrative). Above OBLA, TTE is the shorter of the curve and the wall; VO₂max loss above 2800 m (line extended); SpO₂ (model: West PB, alveolar gas equation, O₂–Hb curve; drive to breathe, acclimatisation and drug effect are directions only); kidney bicarbonate values; PCr level vs intensity; the PCr refilling curve is a two-phase fit to Bogdanis’s measurements; anaerobic carbohydrate use above VO₂max; FTP, when not entered, placed exactly at OBLA (a single rider can differ by tens of watts); an entered FTP changes only the % FTP readouts, not the thresholds; watts from the Latin 1993 equation, which was measured up to 900 kgm/min (≈147 W) and is extended above that, and is used as-is for women; above 100% VO₂max, watts are the oxygen demand extended past VO₂max; % HRmax is a straight line through Swain’s sea-level averages, not adjusted for altitude, heat or drift during long efforts; at altitude the threshold is kept at the same % of the lower VO₂max; above OBLA any carbohydrate intake acts like the 2.8% power gain from a mouth rinse (Carter 2004), read off the TTE curve, in full for efforts of 45 min or more and fading to none at 20 min (the 20 and 45 min limits are illustrative); VO₂max recovery with days follows Schuler’s steps at 2340 m, is interpolated between 2340 and 4100 m (about 10% of the loss from 4100 m up, as in Calbet) and held flat after day 21.</li>';
 
 /* ───────────── INTERAKCJA ───────────── */
 function renderNav() {
