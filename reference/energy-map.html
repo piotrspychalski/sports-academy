@@ -268,7 +268,7 @@ header h1 { font: 800 21px/1.15 var(--display); color: var(--ink); margin: 0; le
     <div class="ctl"><span class="lab">as</span><span class="seg" id="comp"><button type="button" data-v="glc">glucose</button><button type="button" data-v="mal">maltodextrin</button><button type="button" data-v="suc">sucrose</button><button type="button" data-v="gf">glucose + fructose</button></span></div>
     <div class="ctl"><span class="lab">Glycogen at start</span><span class="seg" id="status"><button type="button" data-v="low">low</button><button type="button" data-v="normal">normal</button><button type="button" data-v="loaded">loaded</button></span></div>
     <div class="ctl"><label for="alt">Altitude</label><div class="slider short"><input id="alt" type="range" min="0" max="5000" step="100" value="0"><div class="ticks" id="altTicks"></div></div><output id="altOut"></output></div>
-    <div class="ctl"><span class="lab">Days there</span><input class="num" id="days" type="number" min="0" max="14" value="0" aria-label="Days at this altitude"><span class="lab">Acetazolamide</span><span class="seg" id="acz"><button type="button" data-v="0">no</button><button type="button" data-v="1">yes</button></span></div>
+    <div class="ctl"><span class="lab">Days there</span><input class="num" id="days" type="number" min="0" max="70" value="0" aria-label="Days at this altitude"><span class="lab">Acetazolamide</span><span class="seg" id="acz"><button type="button" data-v="0">no</button><button type="button" data-v="1">yes</button></span></div>
     <div class="ctl"><span class="lab">Athlete</span><input class="num" id="vo2max" type="number" min="25" max="90" value="55" aria-label="VO2max in ml per kg per min"><span>ml/kg/min VO₂max,</span><input class="num" id="mass" type="number" min="40" max="130" value="70" aria-label="Body mass in kg"><span>kg, FTP</span><input class="num" id="ftp" type="number" min="50" max="600" step="1" aria-label="FTP in watts; leave empty to use the estimate" title="Your measured FTP in watts. Empty: estimated as the power at OBLA (Latin 1993 cycling equation), which in a single rider can be off by about ±45 W."><span>W</span><output id="ftpOut"></output></div>
   </div>
 </div>
@@ -344,6 +344,7 @@ const SRC = {
   jensen2012: 'Jensen & Richter 2012, J Physiol (PMID 22199166): post-exercise insulin sensitivity → supercompensation; synthase activity inverse to glycogen',
   bergstrom1967: 'Bergström 1967, Acta Physiol Scand (PMID 5584523): 59 / 126 / 189 min at 75% VO₂max after low / mixed / high-CHO diet',
   coyle1986: 'Coyle 1986, J Appl Physiol (PMID 3525502): at 71% VO₂max fatigue after ≈3 h with falling plasma glucose; CHO feeding delayed fatigue by ≈1 h without changing muscle glycogen use',
+  currell2008: 'Currell & Jeukendrup 2008, Med Sci Sports Exerc (PMID 18202575): 2 h at 55% Wmax then a ≈1-h time trial; glucose + fructose at 1.8 g/min was 8% faster than glucose alone at the same rate',
   smyth2021: 'Smyth 2021, PLoS One (PMID 34010308): the wall typically after the 20-mile mark (≈32 km); hit by ≈28% of men and ≈17% of women',
   adeva2016: 'Adeva-Andany 2016, BBA Clin (PMID 27051594): G6PC1 restricted to liver, kidney, intestine',
   brooks1994: 'Brooks & Mercier 1994, J Appl Physiol (PMID 7928844): crossover concept',
@@ -422,6 +423,9 @@ const SRC = {
   schmidt2021: 'Schmidt 2021, J Biol Chem (PMID 34461088): ATP/O ≈2.78 for carbohydrate vs ≈2.45 for β-oxidation',
   west1996: 'West 1996, J Appl Physiol (PMID 8904608): PB (Torr) = exp(6.63268 − 0.1112 h − 0.00149 h²), h in km (≈537 at 3000 m, ≈420 at 5000 m, calculated)',
   wehrlin2006: 'Wehrlin & Hallén 2006, Eur J Appl Physiol (PMID 16311764): VO₂max −6.3% per 1000 m (range 4.6–7.5%) from 300 to 2800 m; SpO₂ at VO₂max 89% → 76.5%',
+  schuler2007: 'Schuler 2007, Scand J Med Sci Sports (PMID 17316377): 8 elite cyclists at 2340 m: VO₂max −12.8% on day 1, then +3.2% by day 7, +4.8% by day 14, +0.7% (n.s.) by day 21',
+  lundby2006: 'Lundby 2006, J Physiol (PMID 16581864): at 4100 m VO₂max did not rise with acclimatisation (2 and 8 weeks); main reason lower maximal leg blood flow',
+  calbet2003: 'Calbet 2003, Am J Physiol Regul Integr Comp Physiol (PMID 12388462): VO₂max 4.1 L/min at sea level, 2.2 in acute hypoxia, 2.4 after 9–10 weeks at 5260 m despite normal arterial O₂ content; cardiac output and leg blood flow ≈15% lower',
   maggiorini1990: 'Maggiorini 1990, BMJ (PMID 2282425): 466 climbers; AMS (>2 symptoms/signs) in 9% at 2850 m, 13% at 3050 m, 34% at 3650 m, 53% at 4559 m; 11 HAPE/HACE at 4559 m; severe signs → descend',
   roach2018: 'Roach 2018, High Alt Med Biol (PMID 29583031): AMS = Lake Louise score ≥3 from four symptoms, including headache, after a recent ascent',
   luks2017: 'Luks, Swenson & Bärtsch 2017, Eur Respir Rev (PMID 28143879; PMC full text): HACE = truncal ataxia, decreased consciousness → immediate descent; HAPE 1–5 days >2500–3000 m; AMS: stop ascent, descend 500–1000 m if not better; risk table; HAPE recurrence ≈60%; onset 4–12 h; above 2500–3000 m ≤300–600 m/night more sleeping altitude, rest day every 3–4 days; prophylaxis for moderate–high risk; acetazolamide the mainstay',
@@ -495,7 +499,15 @@ const hrPct = p => Math.min(100, Math.round(0.646 * p + 37.2));
    PAO₂ z równania gazu pęcherzykowego (RQ 0,8); SaO₂ z równania Severinghausa [severinghaus1979]. */
 const PB = h => Math.exp(6.63268 - 0.1112 * h / 1000 - 0.00149 * (h / 1000) ** 2);   // mmHg
 const PIO2 = h => 0.2093 * (PB(h) - 47);
-const VF = h => 1 - 0.063 * Math.max(0, h - 300) / 1000;
+const VF0 = h => 1 - 0.063 * Math.max(0, h - 300) / 1000;   // VO₂max na tej wysokości w dniu przyjazdu [wehrlin2006]
+// Aklimatyzacja oddaje część straty VO₂max, tym mniej, im wyżej. 2340 m: −12,8% w dniu 1, potem +3,2% do dnia 7, +4,8% do dnia 14,
+// +0,7% (n.s.) do dnia 21 [schuler2007] → wraca ≈22 / 55 / 61% straty. 4100 m: brak wzrostu po 2 i 8 tygodniach [lundby2006];
+// 5260 m: po 9–10 tygodniach wraca ≈10% straty mimo wyrównanej zawartości O₂ we krwi (rzut serca i przepływ w nogach zostają niższe) [calbet2003].
+// Między 2340 a 4100 m interpolacja; po dniu 21 bez zmian (ilustracyjnie).
+const ACC_PTS = [[0, 0], [1, 0], [7, 0.22], [14, 0.555], [21, 0.607]];
+const accFrac = d => { for (let i = 1; i < ACC_PTS.length; i++) { const [d1, f1] = ACC_PTS[i]; if (d <= d1) { const [d0, f0] = ACC_PTS[i - 1]; return f0 + (f1 - f0) * (d - d0) / (d1 - d0); } } return ACC_PTS[ACC_PTS.length - 1][1]; };
+const accScale = h => 1 - (1 - 0.1 / 0.607) * clamp((h - 2340) / (4100 - 2340));   // od 4100 m wraca najwyżej ≈10% straty [calbet2003]
+const VF = (h, d = S.days) => { const v0 = VF0(h); return v0 + (1 - v0) * accFrac(Math.max(0, d)) * accScale(h); };
 const hyp = h => clamp((149 - PIO2(h)) / 80);
 function breath(p, o = {}) {   // p = % VO₂max (względne); o = { alt, days, acz } do wykresów
   const alt = o.alt ?? S.alt, days = o.days ?? S.days, az = o.acz ?? S.acz;
@@ -505,7 +517,7 @@ function breath(p, o = {}) {   // p = % VO₂max (względne); o = { alt, days, a
   const paco2 = 40 / vd, pao2A = PIO2(alt) - paco2 / 0.8, pao2Ex = PIO2(alt) - 40 / vdEx / 0.8;
   const grad = 2 + (12 + 0.3 * Math.max(0, S.vo2max - 55)) * (Math.min(p, 100) / 100) ** 2 * (1 + 0.3 * hy);   // w hipoksji dochodzi ograniczenie dyfuzji   // u lepiej wytrenowanych większa desaturacja wysiłkowa   // gradient A–a rośnie z wysiłkiem (ilustracyjnie)
   const sat = (P, pc, ex = 0) => { const pH = 7.40 + 0.008 * (40 - pc) - 0.12 * ex, Pv = P * 10 ** (0.40 * (pH - 7.4) + 0.06 * Math.log10(40 / pc) - 0.05 * ex); return 100 / (1 + 23400 / (Pv ** 3 + 150 * Pv)); };   // Severinghaus z poprawką Bohra
-  const vo2 = Math.min(p, 100) / 100 * S.vo2max * VF(alt) * S.mass / 1000;
+  const vo2 = Math.min(p, 100) / 100 * S.vo2max * VF(alt, days) * S.mass / 1000;
   const VE = vo2 * 24 * vdEx * (1 + 0.12 * clamp((p - LT()) / (OBLA() - LT())) + 0.35 * clamp((p - OBLA()) / (100 - OBLA())) ** 1.5);   // powyżej VO₂max wentylacja już nie rośnie
   const comp = hy * (1 - Math.exp(-days / 0.5));                     // nerkowa kompensacja zasadowicy: pH wyrównane w ~24 h na 3800 m [bird2021]
   const hco3 = 24 - 3.5 * comp - (az ? 4 : 0);                       // mmol/L, ilustracyjnie
@@ -528,9 +540,11 @@ const lerpLog = (p, p0, t0, p1, t1) => Math.exp(Math.log(t0) + (Math.log(t1) - M
 // OBLA ≈ MLSS 55 min; CP 30 min; VO₂max 5 min; powyżej CP W′/(P − CP). TTE = min(krzywa, ściana glikogenowa z symulacji):
 // glikogen startowy i węglowodany działają przez ścianę (symulacja zgodna z proporcjami Bergström 1967 i Coyle 1986).
 const T_LT1 = () => 94 + (240 - 94) * clamp((S.vo2max - 40) / 25);
-// Glikogen startowy i jedzenie skalują też krzywę: ×59/126 / ×189/126 [bergstrom1967], ×1,33 przy ≥60 g/h wchłoniętych [coyle1986];
+// Glikogen startowy i jedzenie skalują też krzywę: ×59/126 / ×189/126 [bergstrom1967], +0,33 na każde 60 g/h wchłonięte [coyle1986],
+// liniowo do 90 g/h (×1,5; więcej nie wchłonie nawet glukoza z fruktozą [jeukendrup2014]; glukoza z fruktozą > sama glukoza [currell2008]);
 // wpływ wygasa między OBLA a CP (wyżej decyduje zmęczenie); niedobór glikogenu skraca TTE w całym zakresie (krzywa nie rośnie z intensywnością).
 const KGLY = { low: 59 / 126, normal: 1, loaded: 189 / 126 };
+const feedGain = absorbed => 1 + 0.33 * clamp(absorbed / 60, 0, 1.5);   // wydłużenie z paliwa: 60 g/h ×1,33 [coyle1986], 90 g/h ×1,5 (liniowo)
 // Powyżej OBLA (wysiłki ~20–60 min) węglowodany działają głównie przez jamę ustną, nie jako paliwo: płukanie bez połykania
 // poprawiło 1-h jazdę na czas (259 vs 252 W, +2,8%) [carter2004a], a glukoza dożylnie nie [carter2004b]; 79 g CHO w ~1 h: +6,3% [below1995].
 // Dlatego każde spożycie > 0 g/h działa tu jak +2,8% mocy (TTE z krzywej przy tej samej mocy −2,8%), niezależnie od dawki;
@@ -539,7 +553,7 @@ const KGLY = { low: 59 / 126, normal: 1, loaded: 189 / 126 };
 const MOUTH_P = 259 / 252;
 const tteCP = (p, feed = true) => {
   const lt = LT(), ob = OBLA(), cp = CPp();
-  const k = KGLY[S.status] * (feed ? 1 + 0.33 * clamp((SIM ? SIM.tr[0].A.absorbed : 0) / 60) : 1);
+  const k = KGLY[S.status] * (feed ? feedGain(SIM ? SIM.tr[0].A.absorbed : 0) : 1);
   const fade = p <= ob ? 1 : clamp((cp - p) / (cp - ob));
   const kk = k < 1 ? k : 1 + (k - 1) * fade;
   const curve = q => q > cp ? Math.min(T_CP, TLIM100 * (100 - cp) / (q - cp)) : q > ob ? lerpLog(q, ob, T_MLSS, cp, T_CP) : q <= lt - 15 ? Infinity : q <= lt ? lerpLog(q, lt - 15, T_LT1() * 4, lt, T_LT1()) : lerpLog(q, lt, T_LT1(), ob, T_MLSS);
@@ -634,9 +648,9 @@ function recompute() {
   };
   const pool = poolFor(S.status);
   SIM = simulate(S.status, pool);
-  { // ściana: z symulacji bez węglowodanów (zgodna z proporcjami Bergström 1967), karmienie wydłuża ją ×(1 + 0,33·wchłonięte/60) [coyle1986: ≈3 → 4 h]
+  { // ściana: z symulacji bez węglowodanów (zgodna z proporcjami Bergström 1967), karmienie wydłuża ją ×(1 + 0,33·wchłonięte/60), do 90 g/h [coyle1986: ≈3 → 4 h]
     const g = S.gph; S.gph = 0; const w0 = simulate(S.status, pool).wall; S.gph = g;
-    const f = 1 + 0.33 * clamp(SIM.tr[0].A.absorbed / 60);
+    const f = feedGain(SIM.tr[0].A.absorbed);
     SIM.wall = w0 === null ? SIM.wall : (w0 * f <= TMAX ? Math.round(w0 * f) : null);
   }
   GHOST = S.status !== 'normal' ? simulate('normal', poolFor('normal')) : null;
@@ -691,7 +705,8 @@ const TOPICS = [
     more: [["Transporters and limits", [
         ["Glucose (also from maltodextrin and sucrose) crosses through SGLT1, fructose through GLUT5; both leave the cell towards the blood through GLUT2.", "jeukendrup2014 sun2012"],
         ["Maltodextrin is split by α-amylase and brush-border enzymes, sucrose by sucrase at the brush border; neither step is the bottleneck. Maltodextrin behaves like glucose; sucrose supplies glucose and fructose.", "wagenmakers1993 sun2012 gonzalez2015"],
-        ["In hard and long efforts gut blood flow falls, and absorption may fall too.", "tersteege2012 costa2017"]]]] },
+        ["In hard and long efforts gut blood flow falls, and absorption may fall too.", "tersteege2012 costa2017"],
+        ["The type matters only above about 60 g/h: below that glucose alone is absorbed in full. Above it glucose with fructose gets more through; at 1.8 g/min it made a ≈1-h time trial after 2 h of riding 8% faster than glucose alone. In the sketch every gram absorbed up to 90 g/h lengthens the effort by the same amount.", "currell2008 jeukendrup2014 coyle1986"]]]] },
   { id: 'glycogen', name: 'Glycogen, the wall & TTE', organ: 'muscle', flows: ['glcHep', 'glcMus', 'glcPortal', 'food', 'lacOut', 'ala'], chart: 'glycogen',
     lead: ['Muscle glycogen fuels only the muscle that holds it; liver glycogen keeps blood glucose up for the rest of the body. How full the stores are at the start decides how long a hard effort lasts: 59, 126 and 189 min at 75% VO₂max after a low-, mixed- and high-carbohydrate diet. When they run out you hit the wall.', 'bergstrom1967'],
     more: [["The wall and eating during exercise", [
@@ -746,7 +761,9 @@ const TOPICS = [
         ["First hours: low oxygen drives breathing up. More air raises the oxygen in the lungs but also blows off CO₂, so the blood turns alkaline (respiratory alkalosis), and that alkalosis itself holds breathing back.", "bird2021"],
         ["First day: the kidneys excrete bicarbonate, cancelling the alkalosis. In 16 lowlanders taken quickly to 3800 m, arterial pH was back to normal within 24 h; how fast and how fully this happens varies a lot between people.", "bird2021"],
         ["Following days: with that brake on breathing released, ventilation rises further and oxygenation improves (ventilatory acclimatisation). Acetazolamide starts the kidney step in advance.", "bird2021 leaf2007"],
-        ["Weeks: the body makes more red cells. Haemoglobin mass rises about 1.1% per 100 h at altitude; after about 300 h (2–3 weeks) the expected gain in an athlete is about 1–6%.", "gore2013"]]]] },
+        ["Weeks: the body makes more red cells. Haemoglobin mass rises about 1.1% per 100 h at altitude; after about 300 h (2–3 weeks) the expected gain in an athlete is about 1–6%.", "gore2013"],
+        ["VO₂max comes back only partly. In elite cyclists at 2340 m it was 12.8% lower on day 1, rose 3.2% by day 7 and 4.8% more by day 14, and did not rise further by day 21. The sketch uses these steps for “Days there”.", "schuler2007"],
+        ["Higher up even less returns. At 4100 m VO₂max did not rise after 2 or 8 weeks; after 9–10 weeks at 5260 m it was 2.4 L/min against 2.2 on arrival and 4.1 at sea level, although the blood again carried as much oxygen as at home. Cardiac output and leg blood flow stay about 15% lower.", "lundby2006 calbet2003"]]]] },
   { id: 'ams', name: 'Acute mountain sickness', organ: 'lungs', flows: [], chart: 'ams',
     lead: ['Acute mountain sickness is headache with other symptoms after a recent ascent, usually starting 4–12 h after arrival. It becomes more common the higher you sleep, and the main protection is a slow ascent.', 'roach2018 luks2017 maggiorini1990'],
     more: [["Risk, prevention and warning signs", [
@@ -1479,11 +1496,12 @@ const CHARTS = {
     const a = axes('altitude (km)', '% of sea level / SpO₂ %', [0, 1, 2, 3, 4, 5].map(h => [h / 5, String(h)]), [[0, '50'], [0.4, '70'], [0.8, '90'], [1, '100']]);
     const Y = v => (v - 50) / 50;
     line(range(50, u => [u, Y(100 * VF(5000 * u))]), a, { c: C.ink, w: 3 });
+    if (S.days > 1) line(range(50, u => [u, Y(100 * VF0(5000 * u))]), a, { c: C.ink, w: 1.8, d: '4 3' });   // VO₂max w dniu przyjazdu
     line(range(50, u => [u, Y(breath(0, { alt: 5000 * u }).spo2Rest)]), a, { c: C.blood, w: 3 });
     const changed = S.days > 0 || S.acz;   // przerywana (przyjazd) tylko gdy różni się od bieżącej
     if (changed) line(range(50, u => [u, Y(breath(0, { alt: 5000 * u, days: 0, acz: false }).spo2Rest)]), a, { c: C.blood, w: 1.8, d: '4 3' });
     if (S.alt) vmark(a, S.alt / 5000, `${S.alt} m`);
-    return ['VO₂max and resting SpO₂ with altitude', LEG([['VO₂max (% of sea level)', C.ink], [`SpO₂, day ${S.days}${S.acz ? ', acetazolamide' : ''}`, C.blood]].concat(changed ? [['SpO₂ on arrival, no drug', C.blood, 1]] : []))];
+    return ['VO₂max and resting SpO₂ with altitude', LEG([[`VO₂max (% of sea level)${S.days > 1 ? `, day ${S.days}` : ''}`, C.ink]].concat(S.days > 1 ? [['VO₂max on arrival', C.ink, 1]] : [], [[`SpO₂, day ${S.days}${S.acz ? ', acetazolamide' : ''}`, C.blood]], changed ? [['SpO₂ on arrival, no drug', C.blood, 1]] : []))];
   },
   ams() {
     const U = h => (h - 2000) / 3000;   // oś 2–5 km, żeby słupki 2850 i 3050 m się nie nakładały
@@ -1501,7 +1519,7 @@ const CHARTS = {
     el('path', { d: 'M' + yes.map(([u, v]) => `${a.X(u).toFixed(1)},${a.Y(v).toFixed(1)}`).join('L') + 'L' + no.slice().reverse().map(([u, v]) => `${a.X(u).toFixed(1)},${a.Y(v).toFixed(1)}`).join('L') + 'Z', fill: C.blood, opacity: 0.15 }, ch);
     line(no, a, { c: C.ink, w: 3 });
     line(yes, a, { c: C.blood, w: 3, d: '6 3' });
-    if (S.days > 0) vmark(a, S.days / 10);
+    if (S.days > 0) vmark(a, Math.min(S.days, 10) / 10, S.days > 10 ? `day ${S.days}` : '');   // oś do 10 dni; dalej kreska na krawędzi z podpisem
     const d0 = breath(0, { alt: h, days: 0, acz: false }).spo2Rest, d7 = breath(0, { alt: h, days: 7, acz: false }).spo2Rest, z0 = breath(0, { alt: h, days: 0, acz: true }).spo2Rest;
     tx(ch, `day 0 → 7: +${Math.round(d7 - d0)} points`, a.X(0.98), a.Y(Y(d7)) + 16, { size: 10, it: true, anchor: 'end' });
     tx(ch, `drug: +${Math.round(z0 - d0)} on day 0`, a.X(0.02) + 4, a.Y(Y(d0)) + 14, { size: 10, it: true, fill: C.blood });
@@ -1716,7 +1734,7 @@ $('srcOpen').addEventListener('click', openSrc);
 document.querySelector('.mobnav [data-src]').addEventListener('click', openSrc);
 $('srcClose').addEventListener('click', () => srcDlg.close());
 srcDlg.addEventListener('click', ev => { if (ev.target === srcDlg) srcDlg.close(); });
-$('srcList').innerHTML = Object.values(SRC).map(s => `<li>${s}</li>`).join('') + '<li>Illustrative (no source yet): the share of muscle glycogen held in the working legs (60%), “low” starting glycogen, liver glycogen after loading, the share of glycogen vs blood glucose, gluconeogenesis rate, the gut-absorption fall above ~75% VO₂max, blood-lactate curve shape, LT1 position; ventilation curve and placing VT1/RCP at LT1/OBLA; CP placed just above OBLA; OBLA treated as MLSS; TTE: a fatigue curve through the sourced points (LT1, MLSS, CP, VO₂max; interpolated, TTE at LT1 scaled by VO₂max; starting glycogen scales it by Bergström’s ratios). Up to OBLA, TTE is the glycogen wall: the glycogen pool in the working fibres is sized so that, without eating, the wall falls on the curve; eating lengthens it ×1.33 at ≥60 g/h absorbed (Coyle 1986). Above OBLA, TTE is the shorter of the curve and the wall; VO₂max loss above 2800 m (line extended); SpO₂ (model: West PB, alveolar gas equation, O₂–Hb curve; drive to breathe, acclimatisation and drug effect are directions only); kidney bicarbonate values; PCr level vs intensity; the PCr refilling curve is a two-phase fit to Bogdanis’s measurements; anaerobic carbohydrate use above VO₂max; FTP, when not entered, placed exactly at OBLA (a single rider can differ by tens of watts); an entered FTP changes only the % FTP readouts, not the thresholds; watts from the Latin 1993 equation, which was measured up to 900 kgm/min (≈147 W) and is extended above that, and is used as-is for women; above 100% VO₂max, watts are the oxygen demand extended past VO₂max; % HRmax is a straight line through Swain’s sea-level averages, not adjusted for altitude, heat or drift during long efforts; at altitude the threshold is kept at the same % of the lower VO₂max; above OBLA any carbohydrate intake acts like the 2.8% power gain from a mouth rinse (Carter 2004), read off the TTE curve, in full for efforts of 45 min or more and fading to none at 20 min (the 20 and 45 min limits are illustrative).</li>';
+$('srcList').innerHTML = Object.values(SRC).map(s => `<li>${s}</li>`).join('') + '<li>Illustrative (no source yet): the share of muscle glycogen held in the working legs (60%), “low” starting glycogen, liver glycogen after loading, the share of glycogen vs blood glucose, gluconeogenesis rate, the gut-absorption fall above ~75% VO₂max, blood-lactate curve shape, LT1 position; ventilation curve and placing VT1/RCP at LT1/OBLA; CP placed just above OBLA; OBLA treated as MLSS; TTE: a fatigue curve through the sourced points (LT1, MLSS, CP, VO₂max; interpolated, TTE at LT1 scaled by VO₂max; starting glycogen scales it by Bergström’s ratios). Up to OBLA, TTE is the glycogen wall: the glycogen pool in the working fibres is sized so that, without eating, the wall falls on the curve; eating lengthens it by 0.33× per 60 g/h absorbed (Coyle 1986), extended in a straight line up to 90 g/h (×1.5; that glucose with fructose beats glucose alone is from Currell 2008, the straight line is illustrative). Above OBLA, TTE is the shorter of the curve and the wall; VO₂max loss above 2800 m (line extended); SpO₂ (model: West PB, alveolar gas equation, O₂–Hb curve; drive to breathe, acclimatisation and drug effect are directions only); kidney bicarbonate values; PCr level vs intensity; the PCr refilling curve is a two-phase fit to Bogdanis’s measurements; anaerobic carbohydrate use above VO₂max; FTP, when not entered, placed exactly at OBLA (a single rider can differ by tens of watts); an entered FTP changes only the % FTP readouts, not the thresholds; watts from the Latin 1993 equation, which was measured up to 900 kgm/min (≈147 W) and is extended above that, and is used as-is for women; above 100% VO₂max, watts are the oxygen demand extended past VO₂max; % HRmax is a straight line through Swain’s sea-level averages, not adjusted for altitude, heat or drift during long efforts; at altitude the threshold is kept at the same % of the lower VO₂max; above OBLA any carbohydrate intake acts like the 2.8% power gain from a mouth rinse (Carter 2004), read off the TTE curve, in full for efforts of 45 min or more and fading to none at 20 min (the 20 and 45 min limits are illustrative); VO₂max recovery with days follows Schuler’s steps at 2340 m, is interpolated between 2340 and 4100 m (about 10% of the loss from 4100 m up, as in Calbet) and held flat after day 21.</li>';
 
 /* ───────────── INTERAKCJA ───────────── */
 function renderNav() {
@@ -1738,7 +1756,7 @@ function stepTopic(d) { const i = TOPICS.findIndex(x => x.id === S.topic); setTo
 $('topics').addEventListener('click', ev => { const b = ev.target.closest('button'); if (!b) return; if (b.dataset.group) { setTopic(GROUPS.find(g => g[0] === b.dataset.group)[2][0]); return; } if (b.dataset.topic) { setTopic(b.dataset.topic); openPane('paneTopic'); } else stepTopic(+b.dataset.step); });
 $('int').addEventListener('input', ev => { S.pace = +ev.target.value; render(); });
 $('alt').addEventListener('input', ev => { S.alt = +ev.target.value; render(); });
-$('days').addEventListener('change', ev => { S.days = clamp(+ev.target.value || 0, 0, 14); ev.target.value = S.days; render(); });
+$('days').addEventListener('change', ev => { S.days = clamp(Math.round(+ev.target.value) || 0, 0, 70); ev.target.value = S.days; render(); });
 $('acz').addEventListener('click', ev => { const b = ev.target.closest('button'); if (b) { S.acz = b.dataset.v === '1'; render(); } });
 $('time').addEventListener('input', ev => { S.t = +ev.target.value; stopPlay(); render(); });
 $('gph').addEventListener('input', ev => { S.gph = +ev.target.value; render(); });
@@ -1806,7 +1824,7 @@ $('play').addEventListener('click', () => { if (S.playing) return stopPlay(); if
    · adres #s=<JSON slajdu>. Klawisz C kopiuje bieżący stan jako JSON slajdu (do pliku sekwencji w data/slides/).
    Pola: README w .claude/skills/sketch-slides/SKILL.md; walidacja przy budowie: tools/sketch-slides.js. */
 const SLIDE_NUM = { intensity: ['pace', 5, PMAX], time: ['t', 0, TMAX], gph: ['gph', 0, 120], altitude: ['alt', 0, 5000] };
-const SLIDE_INT = { days: ['days', 0, 14], vo2max: ['vo2max', 25, 90], mass: ['mass', 40, 130], ftp: ['ftp', 0, 600] };
+const SLIDE_INT = { days: ['days', 0, 70], vo2max: ['vo2max', 25, 90], mass: ['mass', 40, 130], ftp: ['ftp', 0, 600] };
 let TW = null, HOLD = false, PLAY_TO = null, PLAY_REQ = null, WARN = [];
 function topicId(v) {
   const s = String(v).trim(), lc = s.toLowerCase();
@@ -1925,6 +1943,21 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 placeMore();
+// Wpisane wartości zawodnika (VO₂max, masa, FTP) zapamiętane w tej przeglądarce. Nie w ramce studia ani przy adresie #s=,
+// bo slajd ma własny stan; zapis tylko po zmianie pola przez użytkownika (slajdy ustawiają pola bez zdarzenia change).
+const ATH_KEY = 'hoebm-athlete';
+const saveAthlete = () => { try { localStorage.setItem(ATH_KEY, JSON.stringify({ vo2max: S.vo2max, mass: S.mass, ftp: S.ftp })); } catch (e) { /* prywatne okno / zablokowane dane */ } };
+['vo2max', 'mass', 'ftp'].forEach(id => $(id).addEventListener('change', saveAthlete));
+if (!EMBED && !location.hash.startsWith('#s=')) {
+  try {
+    const a = JSON.parse(localStorage.getItem(ATH_KEY) || 'null');
+    if (a && typeof a === 'object') {
+      S.vo2max = clamp(Math.round(+a.vo2max) || 55, 25, 90); S.mass = clamp(Math.round(+a.mass) || 70, 40, 130);
+      S.ftp = Math.round(+a.ftp) ? clamp(Math.round(+a.ftp), 50, 600) : 0;
+      $('vo2max').value = S.vo2max; $('mass').value = S.mass; $('ftp').value = S.ftp || '';
+    }
+  } catch (e) { /* brak lub uszkodzony zapis: wartości domyślne */ }
+}
 render();
 if (location.hash.startsWith('#s=')) { try { const w = applySlide(JSON.parse(decodeURIComponent(location.hash.slice(3)))); if (w.length) console.warn('slide:', w); } catch (e) { console.warn('slide: bad #s= JSON', e); } }
 requestAnimationFrame(frame);

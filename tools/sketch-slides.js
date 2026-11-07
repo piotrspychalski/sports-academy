@@ -7,7 +7,7 @@
 const fs = require('fs'), path = require('path');
 
 const DEFAULTS = { intensity: 65, time: 0, gph: 60, comp: 'gf', glycogen: 'normal', altitude: 0, days: 0, acetazolamide: false, vo2max: 55, mass: 70, ftp: 0 };
-const RANGES = { intensity: [5, 150], time: [0, 300], gph: [0, 120], altitude: [0, 5000], days: [0, 14], vo2max: [25, 90], mass: [40, 130], ftp: [0, 600] };
+const RANGES = { intensity: [5, 150], time: [0, 300], gph: [0, 120], altitude: [0, 5000], days: [0, 70], vo2max: [25, 90], mass: [40, 130], ftp: [0, 600] };
 const ENUMS = { comp: ['glc', 'mal', 'suc', 'gf'], glycogen: ['low', 'normal', 'loaded'], pane: ['topic', 'organ', 'settings'] };
 const PER_SLIDE = ['open', 'zoom', 'play', 'pane', 'sources'];
 const META = ['label', 'note', 'tween'];

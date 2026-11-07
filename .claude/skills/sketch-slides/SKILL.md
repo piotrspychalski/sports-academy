@@ -63,7 +63,7 @@ Odpowiadaj Piotrowi po polsku. Treść slajdów (`label`, `note`) po angielsku, 
 | `comp` | `glc` glukoza · `mal` maltodekstryna · `suc` sacharoza · `gf` glukoza + fruktoza | tak |
 | `glycogen` | `low` · `normal` · `loaded` (glikogen na starcie) | tak |
 | `altitude` | 0–5000 m (krok 100) | tak |
-| `days` | 0–14 dni na wysokości | tak |
+| `days` | 0–70 dni na wysokości | tak |
 | `acetazolamide` | `true` / `false` | tak |
 | `vo2max` | 25–90 ml/kg/min | tak |
 | `mass` | 40–130 kg | tak |
