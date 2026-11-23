@@ -406,6 +406,7 @@ const SRC = {
   areta2021: 'Areta, Taylor & Koehler 2021, Eur J Appl Physiol (PMID 33095376): EA thresholds from ≤5-day studies; debated in females, unknown in males',
   joy2014: 'Joy et al. 2014, Curr Sports Med Rep (PMID 25014387): triad = low energy availability ± disordered eating, menstrual dysfunction, low BMD',
   mountjoy2023: 'Mountjoy et al. 2023, Br J Sports Med (PMID 37752011): IOC REDs consensus: female and male athletes; REDs CAT2 clinical tool',
+  maughan1981: 'Maughan & Poole 1981, Eur J Appl Physiol (PMID 7195804): 6 men at 104% VO₂max: 4.87 min after a normal diet, 3.32 after a carbohydrate-free diet following exhausting exercise, 6.65 after a high-CHO diet',
   maughan2018: 'Maughan et al. 2018, Br J Sports Med (PMID 29540367): IOC consensus: good evidence for caffeine, creatine, buffers, nitrate; mechanisms, effects, side effects; contamination risk',
   southward2018: 'Southward et al. 2018 (correction), Sports Med (PMID 30094798): caffeine: time-trial completion time 2.26%, ES 0.28',
   guest2021: 'Guest et al. 2021, J Int Soc Sports Nutr (PMID 33388079): sleep and anxiety effects of caffeine partly genetic',
@@ -541,10 +542,13 @@ const lerpLog = (p, p0, t0, p1, t1) => Math.exp(Math.log(t0) + (Math.log(t1) - M
 // OBLA ≈ MLSS 55 min; CP 30 min; VO₂max 5 min; powyżej CP 1/TTE liniowo z mocą. TTE = min(krzywa, ściana glikogenowa z symulacji):
 // glikogen startowy i węglowodany działają przez ścianę (symulacja zgodna z proporcjami Bergström 1967 i Coyle 1986).
 const T_LT1 = () => 94 + (240 - 94) * clamp((S.vo2max - 40) / 25);
-// Glikogen startowy i jedzenie skalują też krzywę: ×59/126 / ×189/126 [bergstrom1967], +0,33 na każde 60 g/h wchłonięte [coyle1986],
-// liniowo do 90 g/h (×1,5; więcej nie wchłonie nawet glukoza z fruktozą [jeukendrup2014]; glukoza z fruktozą > sama glukoza [currell2008]);
-// wpływ wygasa między OBLA a CP (wyżej decyduje zmęczenie); niedobór glikogenu skraca TTE w całym zakresie (krzywa nie rośnie z intensywnością).
+// Glikogen startowy mnoży krzywą w całym zakresie: do OBLA ×59/126 / ×189/126 przy 75% VO₂max [bergstrom1967],
+// przy 104% VO₂max ×3,32/4,87 / ×6,65/4,87 [maughan1981]; między OBLA a 104% przejście log-liniowe, wyżej stałe (ilustracyjnie).
+// Jedzenie: +0,33 na każde 60 g/h wchłonięte [coyle1986], liniowo do 90 g/h (×1,5; więcej nie wchłonie nawet glukoza z fruktozą
+// [jeukendrup2014]; glukoza z fruktozą > sama glukoza [currell2008]); ten efekt paliwowy wygasa między OBLA a CP (wyżej decyduje zmęczenie).
 const KGLY = { low: 59 / 126, normal: 1, loaded: 189 / 126 };
+const KGLY104 = { low: 3.32 / 4.87, normal: 1, loaded: 6.65 / 4.87 };
+const kStatus = p => { const a = KGLY[S.status], b = KGLY104[S.status], ob = OBLA(); return p <= ob ? a : a * Math.pow(b / a, clamp((p - ob) / (104 - ob))); };
 const feedGain = absorbed => 1 + 0.33 * clamp(absorbed / 60, 0, 1.5);   // wydłużenie z paliwa: 60 g/h ×1,33 [coyle1986], 90 g/h ×1,5 (liniowo)
 // Powyżej OBLA (wysiłki ~20–60 min) węglowodany działają głównie przez jamę ustną, nie jako paliwo: płukanie bez połykania
 // poprawiło 1-h jazdę na czas (259 vs 252 W, +2,8%) [carter2004a], a glukoza dożylnie nie [carter2004b]; 79 g CHO w ~1 h: +6,3% [below1995].
@@ -554,17 +558,15 @@ const feedGain = absorbed => 1 + 0.33 * clamp(absorbed / 60, 0, 1.5);   // wydł
 const MOUTH_P = 259 / 252;
 const tteCP = (p, feed = true) => {
   const lt = LT(), ob = OBLA(), cp = CPp();
-  const k = KGLY[S.status] * (feed ? feedGain(SIM ? SIM.tr[0].A.absorbed : 0) : 1);
+  const ks = kStatus(p), fg = feed ? feedGain(SIM ? SIM.tr[0].A.absorbed : 0) : 1;
   const fade = p <= ob ? 1 : clamp((cp - p) / (cp - ob));
-  const kk = k < 1 ? k : 1 + (k - 1) * fade;
   const curve = q => q > cp ? 1 / (1 / T_CP + (q - cp) * (1 / TLIM100 - 1 / T_CP) / (100 - cp)) : q > ob ? lerpLog(q, ob, T_MLSS, cp, T_CP) : q <= lt - 15 ? Infinity : q <= lt ? lerpLog(q, lt - 15, T_LT1() * 4, lt, T_LT1()) : lerpLog(q, lt, T_LT1(), ob, T_MLSS);
   const base = curve(p);
-  // powyżej CP mały zapas glikogenu dodaje stałą do tempa zmęczenia (1/TTE): przy CP TTE = 30·k jak pod CP, wyżej coraz mniejszy wpływ
-  let t = p > cp && k < 1 ? 1 / (1 / base + 1 / (T_CP * k) - 1 / T_CP) : p > cp ? base : base * kk;
+  let t = base * ks * (1 + (fg - 1) * fade);
   if (feed && S.gph > 0 && p > ob) {
     const I = 100 * (3.5 * S.mass + 260) / (S.vo2max * VF(S.alt) * S.mass);   // wyraz wolny równania mocy jako % VO₂max tutaj [latin1993]
     const gain = 1 + clamp((base - 20) / 25) * (curve(I + (p - I) / MOUTH_P) / base - 1);
-    t = Math.max(t, base * gain * Math.min(1, KGLY[S.status]));
+    t = Math.max(t, base * gain * ks);
   }
   return t;
 };
@@ -722,7 +724,8 @@ const TOPICS = [
         ["Why about 32 km: running costs about 1 kcal per kg per km, so a 70-kg runner needs ≈2950 kcal for the marathon, ≈70 kcal per km. Glycogen holds ≈2000 kcal; if it paid for everything it would last ≈29 km. Fat covers part of the cost, but only the glycogen in the running legs (plus the liver) can be used, so the stores run out at around 30–35 km.", "rapoport2010 hearris2018 hall2008"],
         ["Carbohydrate eaten during exercise spares the liver, not the muscle, yet still delays fatigue (about 3 → 4 h at 71% VO₂max).", "gonzalez2015 coyle1986"],
         ["Above FTP, in efforts of about an hour or less, carbohydrate helps mainly through the mouth, not as fuel. Rinsing it without swallowing improved a 1-h time trial (259 vs 252 W), while glucose given into a vein did not; 79 g drunk during about an hour of hard riding made it 6.3% faster. In the sketch any intake therefore counts the same above OBLA, and the effect fades in efforts shorter than about 20–45 min.", "carter2004a carter2004b below1995"],
-        ["In this sketch: for VO₂max 55, 75% VO₂max is already at OBLA, so the times here are shorter than Bergström’s (his subjects worked below their threshold); the ratios between low, mixed and high glycogen are the same.", "bergstrom1967"]]],
+        ["Starting glycogen matters even in a few minutes above VO₂max. At 104% VO₂max six men lasted 4.9 min after a normal diet, 3.3 min after a carbohydrate-free diet following exhausting exercise, and 6.7 min after a high-carbohydrate diet.", "maughan1981"],
+        ["In this sketch: for VO₂max 55, 75% VO₂max is already at OBLA, so the times here are shorter than Bergström’s (his subjects worked below their threshold); the ratios between low, mixed and high glycogen are the same. Above OBLA the ratios move to those at 104% VO₂max (×0.68 and ×1.37).", "bergstrom1967 maughan1981"]]],
       ["Loading and why muscle cannot share", [
         ["Carbohydrate loading raises muscle glycogen about 1.8×; it stays high for at least 3 days, up to about 5, at rest.", "goforth1997 arnall2007"],
         ["After exercise insulin sensitivity and glycogen synthase activity rise, so the stores refill above the starting level.", "jensen2012"],
@@ -742,7 +745,7 @@ const TOPICS = [
         ["At LT1 about 1.5 h in healthy men; just below VT1 about 4 h in trained cyclists (in 30-min bouts).", "pires2011 gallo2024"],
         ["At the maximal lactate steady state (close to OBLA) about 35–65 min, typically ≈55.", "baron2008 fontana2009 pallares2026"],
         ["At critical power 20–40 min; at VO₂max about 3.5–6 min.", "brickley2002 pallares2026 billat1996"],
-        ["Below OBLA, starting glycogen and carbohydrate eaten during exercise change TTE a lot.", "bergstrom1967 coyle1986"]]],
+        ["Below OBLA, starting glycogen and carbohydrate eaten during exercise change TTE a lot; starting glycogen still changes it at 104% VO₂max.", "bergstrom1967 coyle1986 maughan1981"]]],
       ["Thresholds, critical power and breathing", [
         ["VT1 (first ventilatory threshold): where breathing first rises faster than oxygen uptake. Like LT1 it separates moderate from heavy exercise.", "jamnick2020"],
         ["Critical power (CP): the highest pace that still settles into a steady state, close to the maximal lactate steady state, at about 70–80% VO₂max in healthy young people.", "poole2016 jones2010 jamnick2020"],
@@ -1742,7 +1745,7 @@ $('srcOpen').addEventListener('click', openSrc);
 document.querySelector('.mobnav [data-src]').addEventListener('click', openSrc);
 $('srcClose').addEventListener('click', () => srcDlg.close());
 srcDlg.addEventListener('click', ev => { if (ev.target === srcDlg) srcDlg.close(); });
-$('srcList').innerHTML = Object.values(SRC).map(s => `<li>${s}</li>`).join('') + '<li>Illustrative (no source yet): the share of muscle glycogen held in the working legs (60%), “low” starting glycogen, liver glycogen after loading, the share of glycogen vs blood glucose, gluconeogenesis rate, the gut-absorption fall above ~75% VO₂max, blood-lactate curve shape, LT1 position; ventilation curve and placing VT1/RCP at LT1/OBLA; CP placed 3 points above OBLA (at most halfway from OBLA to 100%); OBLA treated as MLSS; TTE: a fatigue curve through the sourced points (LT1, MLSS, CP, VO₂max; interpolated, TTE at LT1 scaled by VO₂max; starting glycogen scales it by Bergström’s ratios); above CP, 1/TTE rises in a straight line with intensity, as in W′/(P − CP), but starting from 30 min at CP instead of from infinity; low starting glycogen adds a constant to 1/TTE there, so its effect shrinks towards VO₂max, and loading has no effect above CP (both simplified). Up to OBLA, TTE is the glycogen wall: the glycogen pool in the working fibres is sized so that, without eating, the wall falls on the curve (where the liver alone would carry the effort past the curve, as with the lower carbohydrate use at altitude, the wall is set on the curve); above OBLA the pool is sized so the working fibres run empty at the OBLA time; eating lengthens it by 0.33× per 60 g/h absorbed (Coyle 1986), extended in a straight line up to 90 g/h (×1.5; that glucose with fructose beats glucose alone is from Currell 2008, the straight line is illustrative). Above OBLA, TTE is the shorter of the curve and the wall; VO₂max loss above 2800 m (line extended); SpO₂ (model: West PB, alveolar gas equation, O₂–Hb curve; drive to breathe, acclimatisation and drug effect are directions only); kidney bicarbonate values; PCr level vs intensity; the PCr refilling curve is a two-phase fit to Bogdanis’s measurements; anaerobic carbohydrate use above VO₂max; FTP, when not entered, placed exactly at OBLA (a single rider can differ by tens of watts); an entered FTP changes only the % FTP readouts, not the thresholds; watts from the Latin 1993 equation, which was measured up to 900 kgm/min (≈147 W) and is extended above that, and is used as-is for women; above 100% VO₂max, watts are the oxygen demand extended past VO₂max; % HRmax is a straight line through Swain’s sea-level averages, not adjusted for altitude, heat or drift during long efforts; at altitude the threshold is kept at the same % of the lower VO₂max; above OBLA any carbohydrate intake acts like the 2.8% power gain from a mouth rinse (Carter 2004), read off the TTE curve, in full for efforts of 45 min or more and fading to none at 20 min (the 20 and 45 min limits are illustrative); VO₂max recovery with days follows Schuler’s steps at 2340 m, is interpolated between 2340 and 4100 m (about 10% of the loss from 4100 m up, as in Calbet) and held flat after day 21.</li>';
+$('srcList').innerHTML = Object.values(SRC).map(s => `<li>${s}</li>`).join('') + '<li>Illustrative (no source yet): the share of muscle glycogen held in the working legs (60%), “low” starting glycogen, liver glycogen after loading, the share of glycogen vs blood glucose, gluconeogenesis rate, the gut-absorption fall above ~75% VO₂max, blood-lactate curve shape, LT1 position; ventilation curve and placing VT1/RCP at LT1/OBLA; CP placed 3 points above OBLA (at most halfway from OBLA to 100%); OBLA treated as MLSS; TTE: a fatigue curve through the sourced points (LT1, MLSS, CP, VO₂max; interpolated, TTE at LT1 scaled by VO₂max); above CP, 1/TTE rises in a straight line with intensity, as in W′/(P − CP), but starting from 30 min at CP instead of from infinity; starting glycogen multiplies TTE by Bergström’s ratios up to OBLA and by Maughan & Poole’s at 104% VO₂max, changing gradually in between and held above 104% (the in-between path and the hold are illustrative). Up to OBLA, TTE is the glycogen wall: the glycogen pool in the working fibres is sized so that, without eating, the wall falls on the curve (where the liver alone would carry the effort past the curve, as with the lower carbohydrate use at altitude, the wall is set on the curve); above OBLA the pool is sized so the working fibres run empty at the OBLA time; eating lengthens it by 0.33× per 60 g/h absorbed (Coyle 1986), extended in a straight line up to 90 g/h (×1.5; that glucose with fructose beats glucose alone is from Currell 2008, the straight line is illustrative). Above OBLA, TTE is the shorter of the curve and the wall; VO₂max loss above 2800 m (line extended); SpO₂ (model: West PB, alveolar gas equation, O₂–Hb curve; drive to breathe, acclimatisation and drug effect are directions only); kidney bicarbonate values; PCr level vs intensity; the PCr refilling curve is a two-phase fit to Bogdanis’s measurements; anaerobic carbohydrate use above VO₂max; FTP, when not entered, placed exactly at OBLA (a single rider can differ by tens of watts); an entered FTP changes only the % FTP readouts, not the thresholds; watts from the Latin 1993 equation, which was measured up to 900 kgm/min (≈147 W) and is extended above that, and is used as-is for women; above 100% VO₂max, watts are the oxygen demand extended past VO₂max; % HRmax is a straight line through Swain’s sea-level averages, not adjusted for altitude, heat or drift during long efforts; at altitude the threshold is kept at the same % of the lower VO₂max; above OBLA any carbohydrate intake acts like the 2.8% power gain from a mouth rinse (Carter 2004), read off the TTE curve, in full for efforts of 45 min or more and fading to none at 20 min (the 20 and 45 min limits are illustrative); VO₂max recovery with days follows Schuler’s steps at 2340 m, is interpolated between 2340 and 4100 m (about 10% of the loss from 4100 m up, as in Calbet) and held flat after day 21.</li>';
 
 /* ───────────── INTERAKCJA ───────────── */
 function renderNav() {
